@@ -1,59 +1,65 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class SinhVien extends Model {
     static associate(models) {
-      SinhVien.belongsTo(models.Lop, { foreignKey: 'lop_id' });
-      SinhVien.hasMany(models.DangKyHoc, { foreignKey: 'sinhvien_id' });
-      SinhVien.hasMany(models.ChiTietDiemDanh, { foreignKey: 'sinhvien_id' });
+      SinhVien.belongsTo(models.LopHanhChinh, {
+        foreignKey: 'lop_hanhchinh_id',
+        as: 'Lop'
+      });
+
+      SinhVien.hasMany(models.DangKyHoc, {
+        foreignKey: 'sinhvien_id',
+        as: 'DangKy'
+      });
+
+      SinhVien.hasMany(models.DiemDanh, {
+        foreignKey: 'sinhvien_id',
+        as: 'DanhSachDiemDanh'
+      });
     }
   }
-  SinhVien.init({
-    sinhvien_id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-      allowNull: false
-    },
-    ma_sv: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-      unique: true
-    },
-    ten: {
-      type: DataTypes.STRING(100),
-      allowNull: false
-    },
-    email: {
-      type: DataTypes.STRING(150)
-    },
-    sdt: {
-      type: DataTypes.STRING(50)
-    },
-    ngaysinh: {
-      type: DataTypes.DATEONLY
-    },
-    lop_id: {
-      type: DataTypes.UUID,
-      references: {
-        model: 'Lop',
-        key: 'lop_id'
+
+  SinhVien.init(
+    {
+      sinhvien_id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL'
+      ma_sv: {
+        type: DataTypes.STRING(50),
+        unique: true,
+        allowNull: false
+      },
+      ten: DataTypes.STRING(100),
+      email: DataTypes.STRING(150),
+      sdt: DataTypes.STRING(50),
+      lop_hanhchinh_id: DataTypes.UUID,
+      ngaysinh: DataTypes.DATEONLY,
+      ngay_tao: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false, 
+        allowNull: false
+      },
+      trang_thai: {
+        type: DataTypes.ENUM('Đang học', 'Cảnh báo', 'Bảo lưu', 'Thôi học'),
+        allowNull: true,
+        defaultValue: null
+      }
     },
-    ngay_tao: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+    {
+      sequelize,
+      modelName: 'SinhVien',
+      tableName: 'SinhVien',
+      timestamps: false
     }
-  }, {
-    sequelize,
-    modelName: 'SinhVien',
-    tableName: 'SinhVien',
-    timestamps: false
-  });
+  );
+
   return SinhVien;
 };
-

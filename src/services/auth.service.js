@@ -19,18 +19,18 @@ const registerGiangVien = async (data) => {
     sdt
   } = data;
 
-  // --- Validate ---
+  // === Validate ===
   if (!username || !password || !ho || !ten) {
-    throw new Error('Thiếu thông tin bắt buộc: username, password, ho, ten.');
+    throw new Error("Thiếu thông tin bắt buộc: username, password, ho, ten.");
   }
 
-  // --- Check username trùng ---
+  // === Check username trùng ===
   const existed = await TaiKhoan.findOne({ where: { username } });
   if (existed) {
-    throw new Error('Username đã tồn tại.');
+    throw new Error("Username đã tồn tại.");
   }
 
-  // --- Tạo giảng viên trước ---
+  // === Tạo hồ sơ giảng viên ===
   const giangvien = await GiangVien.create({
     ma_gv,
     ho,
@@ -39,29 +39,28 @@ const registerGiangVien = async (data) => {
     sdt
   });
 
-  // --- Hash mật khẩu ---
+  // === Hash mật khẩu ===
   const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // --- Tạo tài khoản liên kết giảng viên ---
+  // === Tạo tài khoản ===
   const account = await TaiKhoan.create({
     username,
     password_hash,
-    vaitro: 'giangvien',
-    lienket_loai: 'giangvien',
-    lienket_id: giangvien.giangvien_id,
-    trangthai: 'active'
+    vaitro: "giangvien",
+    ref_id: giangvien.giangvien_id,
+    ngay_tao: new Date()
   });
 
+  // Loại bỏ password trước khi trả về
   const result = account.toJSON();
   delete result.password_hash;
 
   return {
-    success: true,
-    message: 'Tạo tài khoản giảng viên thành công',
     account: result,
     giangvien
   };
 };
+
 
 const loginCustomer = async (loginData) => {
     const { emailOrUsername, password } = loginData;
@@ -105,48 +104,53 @@ const loginCustomer = async (loginData) => {
     return { token, refreshToken, customer: customerInfo,  cartCount: cartCount || 0 };
 };
 const loginTaiKhoan = async ({ username, password }) => {
-  // 1. Tìm tài khoản
- const account = await TaiKhoan.findOne({
-  where: { username },
-  include: [
-    {
-      model: db.GiangVien,
-      as: "GiangVien", // 🔥 BẮT BUỘC
-      attributes: ["giangvien_id", "ma_gv", "ho", "ten"]
-    }
-  ]
-});
+  // 1. Tìm tài khoản theo username
+  const account = await TaiKhoan.findOne({
+    where: { username },
+    include: [
+      {
+        model: db.GiangVien,
+        as: "GiangVien",
+        attributes: ["giangvien_id", "ma_gv", "ho", "ten", "email"]
+      }
+    ]
+  });
 
   if (!account) {
     throw new Error('Username hoặc mật khẩu không chính xác.');
   }
 
-  // 2. Check trạng thái tài khoản
-//   if (account.trangthai !== 'active') {
-//     throw new Error('Tài khoản đang bị khóa hoặc chưa kích hoạt.');
-//   }
+  // 2. Chỉ cho phép tài khoản giảng viên đăng nhập
+  if (account.vaitro !== "giangvien") {
+    throw new Error("Tài khoản này không thuộc vai trò giảng viên.");
+  }
 
-  // 3. So sánh mật khẩu hash
+  // 3. Kiểm tra mật khẩu hash
   const isMatch = await bcrypt.compare(password, account.password_hash);
   if (!isMatch) {
     throw new Error('Username hoặc mật khẩu không chính xác.');
   }
 
-  // 4. Tạo token
-  const token = generateToken(account);
+  // 4. Tạo payload token
+  const payload = {
+    taikhoan_id: account.taikhoan_id,
+    vaitro: account.vaitro,
+    giangvien_id: account.ref_id // ref_id chính là giangvien_id
+  };
 
-  // 5. Xoá password trước khi trả về
-  const data = account.toJSON();
-  delete data.password_hash;
+  const token = generateToken(payload);
+
+  // 5. Chuẩn hoá dữ liệu trả về
+  const accData = account.toJSON();
+  delete accData.password_hash;
 
   return {
     token,
-     user: {
-    ...data,
-    giangvien_id: data.GiangVien?.giangvien_id 
-  }
+    user: accData,
+    giangvien: account.GiangVien
   };
 };
+
 const loginAdmin = async (loginData) => {
     const { username, password } = loginData;
 

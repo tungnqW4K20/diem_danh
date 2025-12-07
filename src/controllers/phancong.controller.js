@@ -1,5 +1,7 @@
 'use strict';
 const phanCongService = require('../services/phancong.service');
+const dayjs = require("dayjs");
+
 
 const getLichGiangDay = async (req, res) => {
   try {
@@ -8,23 +10,17 @@ const getLichGiangDay = async (req, res) => {
     if (!giangvien_id || !hocky_id) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng cung cấp đầy đủ giangvien_id và hocky_id."
+        message: "Vui lòng cung cấp giangvien_id và hocky_id."
       });
     }
 
     const data = await phanCongService.getLichGiangDay(giangvien_id, hocky_id);
 
-    if (data.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "Không tìm thấy lịch giảng dạy cho giảng viên trong học kỳ này.",
-        data: []
-      });
-    }
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Lấy lịch giảng dạy thành công.",
+      message: data.length === 0 
+        ? "Không có lịch giảng dạy trong học kỳ này."
+        : "Lấy lịch giảng dạy thành công.",
       data
     });
 
@@ -36,6 +32,29 @@ const getLichGiangDay = async (req, res) => {
   }
 };
 
+const getLichHomNay = async (req, res) => {
+  try {
+    const { giangvien_id } = req.query;
+    if (!giangvien_id) {
+      return res.status(400).json({ success: false, message: "Thiếu giangvien_id" });
+    }
+
+    const today = dayjs().format("YYYY-MM-DD");
+    const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
+
+    const data = await phanCongService.getLichTheoNgay(giangvien_id, today, tomorrow);
+
+    res.status(200).json({
+      success: true,
+      message: "Lấy lịch thành công",
+      data
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
-  getLichGiangDay
+  getLichGiangDay,
+  getLichHomNay
 };

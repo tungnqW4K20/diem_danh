@@ -1,40 +1,34 @@
 const authService = require('../services/auth.service');
 
-const register = async (req, res, next) => {
-    try {
-        // Kiểm tra dữ liệu đầu vào cơ bản (có thể dùng thư viện validation như express-validator)
-        // const requiredFields = [ 'password'];
-        // const missingFields = requiredFields.filter(field => !req.body[field]);
+const register = async (req, res) => {
+  try {
+    const data = req.body;
 
-        // if (missingFields.length > 0) {
-        //      return res.status(400).json({
-        //          success: false,
-        //          message: `Thiếu các trường bắt buộc: ${missingFields.join(', ')}`
-        //      });
-        // }
-        const customerData = req.body
-        console.log("customerData", customerData)
+    console.log("📌 Dữ liệu đăng ký:", data);
 
-        const newAccount = await authService.registerGiangVien(customerData);
+    const newAccount = await authService.registerGiangVien(data);
 
-        res.status(201).json({
-            success: true,
-            message: 'Đăng ký thành công!',
-            data: newAccount
-        });
-    } catch (error) {
-        console.error("Register Error:", error.message);
-        if (error.message.includes('đã được sử dụng')) {
-            return res.status(409).json({ success: false, message: error.message }); // 409 Conflict
-        }
-        if (error.message.includes('Vui lòng điền đủ')) {
-             return res.status(400).json({ success: false, message: error.message }); // 400 Bad Request
-        }
-        // Lỗi chung
-        res.status(500).json({ success: false, message: 'Lỗi máy chủ nội bộ khi đăng ký.' });
-        // Hoặc dùng next(error) nếu có middleware xử lý lỗi chung
-        // next(error);
+    return res.status(201).json({
+      success: true,
+      message: "Tạo tài khoản giảng viên thành công!",
+      data: newAccount
+    });
+
+  } catch (error) {
+    console.error("❌ Register Error:", error.message);
+
+    // Username trùng
+    if (error.message.includes("đã tồn tại")) {
+      return res.status(409).json({ success: false, message: error.message });
     }
+
+    // Thiếu trường
+    if (error.message.includes("Thiếu thông tin")) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    return res.status(500).json({ success: false, message: "Lỗi server trong quá trình đăng ký." });
+  }
 };
 
 // const login = async (req, res, next) => {
@@ -71,7 +65,6 @@ const register = async (req, res, next) => {
 // };
 const login = async (req, res) => {
   try {
-    console.log("req.body", req.body)
     const { username, password } = req.body;
 
     if (!username || !password) {

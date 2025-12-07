@@ -7,15 +7,28 @@ const db = require('./models');
 const app = express();
 const port = process.env.PORT || 3001;
 
-const host='192.168.0.116'
+const host='172.20.80.1'
+
 
 
 const authRoutes = require('./routes/auth.routes');
+
+
+
+
+
+
 
 const GiangVienRoutes = require('./routes/giangvien.routes');
 const LopRoutes = require('./routes/lop.routes');
 const QRRoutes = require('./routes/qr.routes');
 const PhanCongRoutes = require('./routes/phancong.routes')
+const HocKyRoutes = require('./routes/hocky.routes')
+const LopHocPhanRoute = require('./routes/lophocphan.route')
+const DiemDanhRoute = require('./routes/diemdanh.routes')
+const KhoaRoute = require('./routes/khoa.routes')
+
+const SinhVienRoute = require('./routes/sinhvien.routes')
 
 
 app.use(corsMiddleware);
@@ -24,21 +37,25 @@ app.use(express.json());
 db.sequelize.authenticate()
   .then(() => {
     console.log(' Kết nối MySQL thành công!');
-    //return db.sequelize.sync(); 
-    return db.sequelize.sync({ alter: true }); // thay đổi cấu trúc bảng
+    return db.sequelize.sync(); 
+    //return db.sequelize.sync({ alter: true }); // thay đổi cấu trúc bảng
   })
 
+  
 
   .then(() => {
     console.log('✅ Đồng bộ bảng thành công!');
     app.use('/api/auth', authRoutes);
     app.use('/api/giang-vien', GiangVienRoutes);
+    app.use('/api/hoc-ky', HocKyRoutes);
     app.use('/api/lop', LopRoutes);
     app.use('/api/qr', QRRoutes);
     app.use('/api/phan-cong', PhanCongRoutes);
+    app.use('/api/lop-hoc-phan', LopHocPhanRoute);
+    app.use('/api/diem-danh', DiemDanhRoute);
+    app.use('/api/khoa', KhoaRoute);
+    app.use('/api/sinh-vien', SinhVienRoute);
     
-
-
     app.listen(port,host, () => {
       console.log(` Server chạy tại http://localhost:${port}`);
     });

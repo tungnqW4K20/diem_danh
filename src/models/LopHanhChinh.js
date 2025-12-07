@@ -2,32 +2,26 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class GiangVien extends Model {
+  class LopHanhChinh extends Model {
     static associate(models) {
-      GiangVien.hasMany(models.LopHocPhan, {
-        foreignKey: 'giangvien_id',
-        as: 'DanhSachLopHocPhan'
+      LopHanhChinh.hasMany(models.SinhVien, {
+        foreignKey: 'lop_hanhchinh_id',
+        as: 'DanhSachSinhVien'
       });
-
-      GiangVien.hasOne(models.TaiKhoan, {
-        foreignKey: 'ref_id',
-        as: 'TaiKhoan'
-      });
-      GiangVien.belongsTo(models.Khoa, {
+      LopHanhChinh.belongsTo(models.Khoa, {
         foreignKey: 'khoa_id',
         as: 'Khoa'
       });
-      GiangVien.hasMany(models.LopHanhChinh, {
-          foreignKey: "giangvien_id",
-          as: "DanhSachLopChuNhiem"
+      LopHanhChinh.belongsTo(models.GiangVien, {
+        foreignKey: 'giangvien_id',
+        as: 'GVCN'
       });
     }
   }
 
-
-  GiangVien.init(
+  LopHanhChinh.init(
     {
-      giangvien_id: {
+      lop_hanhchinh_id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
@@ -36,20 +30,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         allowNull: true 
       },
-      ma_gv: {
-        type: DataTypes.STRING(50),
-        unique: true
-      },
-      ho: {
+      ten_lop: {
         type: DataTypes.STRING(100),
         allowNull: false
       },
-      ten: {
-        type: DataTypes.STRING(100),
-        allowNull: false
-      },
-      email: DataTypes.STRING(150),
-      sdt: DataTypes.STRING(50),
+      nien_khoa: DataTypes.INTEGER,
+      chuong_trinh: DataTypes.STRING(100),
+      ghichu: DataTypes.TEXT,
       ngay_tao: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
@@ -59,15 +46,19 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false, // Mặc định là chưa xóa
         allowNull: false
       },
+      giangvien_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
     },
     {
       sequelize,
-      modelName: 'GiangVien',
-      tableName: 'GiangVien',
+      modelName: 'LopHanhChinh',
+      tableName: 'LopHanhChinh',
       timestamps: false,
       
     }
   );
 
-  return GiangVien;
+  return LopHanhChinh;
 };

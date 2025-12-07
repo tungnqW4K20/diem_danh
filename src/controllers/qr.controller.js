@@ -6,7 +6,7 @@ const qrService = require('../services/qr.service');
 const getLopListQr = async (req, res, next) => {
     try {
         // const urlToEncode = `${req.protocol}://${req.get('host')}/api/lop`;
-        const urlToEncode = `http://192.168.0.116:3000/api/lop`;
+        const urlToEncode = `http://192.168.1.65:3000/api/lop`;
         const qrImageBuffer = await qrService.generateQrCodeBuffer(urlToEncode);
         console.log('qrImageBuffer', qrImageBuffer)
         res.setHeader('Content-Type', 'image/png');

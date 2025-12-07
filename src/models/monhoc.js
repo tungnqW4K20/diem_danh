@@ -1,46 +1,51 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class MonHoc extends Model {
     static associate(models) {
-      // Một môn học có thể được phân công nhiều lần
-      MonHoc.hasMany(models.PhanCongMon, { foreignKey: 'monhoc_id' });
+      MonHoc.hasMany(models.LopHocPhan, {
+        foreignKey: 'monhoc_id',
+        as: 'DanhSachHocPhan'
+      });
+       MonHoc.belongsTo(models.Khoa, {
+        foreignKey: 'khoa_id',
+        as: 'Khoa'
+      });
     }
   }
-  MonHoc.init({
-    monhoc_id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-      allowNull: false
+
+  MonHoc.init(
+    {
+      monhoc_id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+      },
+      khoa_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+      },
+      ma_mon: {
+        type: DataTypes.STRING(20),
+        unique: true
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false, // Mặc định là chưa xóa
+        allowNull: false
+      },
+      ten_mon: DataTypes.STRING(255),
+      sotinchi: DataTypes.INTEGER,
+      mota: DataTypes.TEXT
     },
-    ma_mon: {
-      type: DataTypes.STRING(20),
-      allowNull: false,
-      unique: true
-    },
-    ten_mon: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    sotinchi: {
-      type: DataTypes.INTEGER,
-      defaultValue: 3
-    },
-    mota: {
-      type: DataTypes.TEXT
-    },
-    ngay_tao: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+    {
+      sequelize,
+      modelName: 'MonHoc',
+      tableName: 'MonHoc',
+      timestamps: false
     }
-  }, {
-    sequelize,
-    modelName: 'MonHoc',
-    tableName: 'MonHoc',
-    timestamps: false
-  });
+  );
+
   return MonHoc;
 };
