@@ -40,13 +40,37 @@ const getLichHomNay = async (req, res) => {
     }
 
     const today = dayjs().format("YYYY-MM-DD");
+    // Chỉ lấy hôm nay
     const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
 
-    const data = await phanCongService.getLichTheoNgay(giangvien_id, today, tomorrow);
+    const data = await phanCongService.getLichTuanNay(giangvien_id, today, tomorrow);
 
     res.status(200).json({
       success: true,
-      message: "Lấy lịch thành công",
+      message: "Lấy lịch hôm nay thành công",
+      data
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getLichTuan = async (req, res) => {
+  try {
+    const { giangvien_id } = req.query;
+    if (!giangvien_id) {
+      return res.status(400).json({ success: false, message: "Thiếu giangvien_id" });
+    }
+
+    const today = dayjs().format("YYYY-MM-DD");
+    const nextWeek = dayjs().add(7, "day").format("YYYY-MM-DD");
+
+    const data = await phanCongService.getLichTuanNay(giangvien_id, today, nextWeek);
+
+    
+    res.status(200).json({
+      success: true,
+      message: "Lấy lịch tuần thành công",
       data
     });
   } catch (err) {
@@ -56,5 +80,6 @@ const getLichHomNay = async (req, res) => {
 
 module.exports = {
   getLichGiangDay,
-  getLichHomNay
+  getLichHomNay,
+  getLichTuan
 };

@@ -1,8 +1,5 @@
 const db = require('../models');
 
-
-
-
 // const getStudentsByLopHocPhan = async (lophocphan_id, ngay) => {
 //   try {
 //     return await db.DangKyHoc.findAll({
@@ -61,6 +58,72 @@ const getStudentsByLopHocPhan = async (lophocphan_id, ngay) => {
     throw new Error(`Lỗi truy vấn sinh viên lớp học phần: ${error.message}`);
   }
 };
-module.exports = { getStudentsByLopHocPhan };
+
+const getAllLopHocPhan = async (query) => {
+    try {
+        const { hocky_id, giangvien_id, khoa_id } = query;
+        const whereClause = {};
+
+        if (hocky_id) {
+            whereClause.hocky_id = hocky_id;
+        }
+
+        if (giangvien_id) {
+            whereClause.giangvien_id = giangvien_id;
+        }
+        const data = await db.LopHocPhan.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: db.MonHoc,
+                    attributes: ['monhoc_id', 'ma_mon', 'ten_mon', 'sotinchi'],
+                    include: [
+                        {
+                            model: db.Khoa,
+                            as: 'Khoa', 
+                            attributes: ['khoa_id', 'ten_khoa', 'ma_khoa']
+                        }
+                    ]
+                },
+                {
+                    model: db.LopHanhChinh,
+                    as: 'LopHanhChinh',
+                    attributes: ['lop_hanhchinh_id', 'ten_lop'],
+                    include: [
+                        {
+                            model: db.Khoa,
+                            as: 'Khoa', 
+                            attributes: ['khoa_id', 'ten_khoa', 'ma_khoa']
+                        }
+                    ]
+                },
+                {
+                    model: db.GiangVien,
+                    attributes: ['giangvien_id', 'ma_gv', 'ho', 'ten', 'email']
+                },
+                {
+                    model: db.HocKy,
+                    attributes: ['hocky_id', 'ten_hocky']
+                }
+            ],
+            order: [['ngay_tao', 'DESC']]
+        });
+
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('Service Error:', error);
+        throw error;
+    }
+};
+
+
+
+module.exports = { 
+  getStudentsByLopHocPhan,
+  getAllLopHocPhan   
+};
 
 

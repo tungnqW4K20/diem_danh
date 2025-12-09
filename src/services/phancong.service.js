@@ -65,7 +65,30 @@ const getLichTheoNgay = async (giangvien_id, today, tomorrow) => {
       {
         model: db.BuoiHoc,
         as: "DanhSachBuoiHoc",
-where: { ngay: [today, tomorrow] },
+        where: { ngay: [today, tomorrow] },
+        required: false
+      }
+    ],
+    order: [["gio_batdau", "ASC"]]
+  });
+  return data
+};
+
+const getLichTuanNay = async (giangvien_id, startDate, endDate) => {
+  const data = await db.LopHocPhan.findAll({
+    where: { giangvien_id },
+    include: [
+      { model: db.MonHoc, attributes: ["ten_mon"] },
+      { model: db.HocKy, attributes: ["ten_hocky"] },
+      { model: db.LopHanhChinh, attributes: ["ten_lop"], as: 'LopHanhChinh' },
+      {
+        model: db.BuoiHoc,
+        as: "DanhSachBuoiHoc",
+        where: {
+          ngay: {
+            [db.Sequelize.Op.between]: [startDate, endDate]
+          }
+        },
         required: false
       }
     ],
@@ -80,5 +103,6 @@ where: { ngay: [today, tomorrow] },
 
 module.exports = {
   getLichGiangDay,
-  getLichTheoNgay
+  getLichTheoNgay,
+  getLichTuanNay
 };

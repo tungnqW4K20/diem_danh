@@ -7,18 +7,8 @@ const db = require('./models');
 const app = express();
 const port = process.env.PORT || 3001;
 
-const host='172.20.80.1'
-
-
 
 const authRoutes = require('./routes/auth.routes');
-
-
-
-
-
-
-
 const GiangVienRoutes = require('./routes/giangvien.routes');
 const LopRoutes = require('./routes/lop.routes');
 const QRRoutes = require('./routes/qr.routes');
@@ -27,8 +17,11 @@ const HocKyRoutes = require('./routes/hocky.routes')
 const LopHocPhanRoute = require('./routes/lophocphan.route')
 const DiemDanhRoute = require('./routes/diemdanh.routes')
 const KhoaRoute = require('./routes/khoa.routes')
-
+const PhanCongAutoRoutes = require('./routes/phancong-auto.routes')
 const SinhVienRoute = require('./routes/sinhvien.routes')
+
+const MonHocRoute = require('./routes/monhoc.routes')
+
 
 
 app.use(corsMiddleware);
@@ -55,8 +48,13 @@ db.sequelize.authenticate()
     app.use('/api/diem-danh', DiemDanhRoute);
     app.use('/api/khoa', KhoaRoute);
     app.use('/api/sinh-vien', SinhVienRoute);
-    
-    app.listen(port,host, () => {
+    app.use('/api/phan-cong-auto', PhanCongAutoRoutes);
+    app.use('/api/mon-hoc', MonHocRoute);
+
+
+
+
+    app.listen(port, () => {
       console.log(` Server chạy tại http://localhost:${port}`);
     });
   })

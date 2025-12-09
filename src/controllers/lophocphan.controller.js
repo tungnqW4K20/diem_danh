@@ -26,4 +26,28 @@ const getStudentsByLopHocPhan = async (req, res) => {
   }
 };
 
-module.exports = { getStudentsByLopHocPhan };
+
+const getAll = async (req, res) => {
+    try {
+        const query = req.query;
+        const result = await lopHocPhanService.getAllLopHocPhan(query);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Lấy danh sách lớp học phần thành công',
+            data: result.data
+        });
+    } catch (error) {
+        console.error('Controller Error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { 
+  getStudentsByLopHocPhan,
+  getAll
+ };
