@@ -8,14 +8,34 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'lop_hanhchinh_id',
         as: 'DanhSachSinhVien'
       });
+
       LopHanhChinh.belongsTo(models.Khoa, {
         foreignKey: 'khoa_id',
         as: 'Khoa'
       });
+
       LopHanhChinh.belongsTo(models.GiangVien, {
         foreignKey: 'giangvien_id',
         as: 'GVCN'
       });
+
+      // Quan hệ N-N với LopHocPhan
+      LopHanhChinh.belongsToMany(models.LopHocPhan, {
+        through: models.LHP_LHC,
+        foreignKey: 'lop_hanhchinh_id',
+        otherKey: 'lophocphan_id',
+        as: 'DanhSachLopHocPhan'
+      });
+       LopHanhChinh.belongsTo(models.CoSo, {
+        foreignKey: 'coso_id',
+        as: 'CoSo'
+      });
+
+      LopHanhChinh.belongsTo(models.ChuyenNganh, {
+        foreignKey: 'chuyennganh_id',
+        as: 'ChuyenNganh'
+      });
+      
     }
   }
 
@@ -28,7 +48,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       khoa_id: {
         type: DataTypes.UUID,
-        allowNull: true 
+        allowNull: true
       },
       ten_lop: {
         type: DataTypes.STRING(100),
@@ -43,20 +63,29 @@ module.exports = (sequelize, DataTypes) => {
       },
       isDeleted: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false, // Mặc định là chưa xóa
+        defaultValue: false,
         allowNull: false
       },
       giangvien_id: {
         type: DataTypes.UUID,
         allowNull: true
       },
+      coso_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: { model: 'CoSo', key: 'coso_id' }
+      },
+      chuyennganh_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: { model: 'ChuyenNganh', key: 'chuyennganh_id' }
+      },
     },
     {
       sequelize,
       modelName: 'LopHanhChinh',
       tableName: 'LopHanhChinh',
-      timestamps: false,
-      
+      timestamps: false
     }
   );
 

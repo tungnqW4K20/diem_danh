@@ -51,9 +51,35 @@ const getStudentsByClass = async (req, res, next) => {
 };
 
 
+// const createLop = async (req, res) => {
+//   try {
+//     const { ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu,  } = req.body;
+
+//     if (!ten_lop || !nien_khoa || !chuong_trinh) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'ten_lop, nien_khoa và chuong_trinh là bắt buộc'
+//       });
+//     }
+
+//     const newLop = await lopService.createLop({ ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu });
+
+//     return res.status(201).json({
+//       success: true,
+//       message: 'Tạo lớp thành công',
+//       data: newLop
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
 const createLop = async (req, res) => {
   try {
-    const { ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu } = req.body;
+    // Thêm chuyennganh_id và coso_id (nếu cần) vào destructuring
+    const { ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu, chuyennganh_id, coso_id } = req.body;
 
     if (!ten_lop || !nien_khoa || !chuong_trinh) {
       return res.status(400).json({
@@ -62,7 +88,9 @@ const createLop = async (req, res) => {
       });
     }
 
-    const newLop = await lopService.createLop({ ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu });
+    const newLop = await lopService.createLop({ 
+      ten_lop, nien_khoa, chuong_trinh, khoa_id, giangvien_id, ghichu, chuyennganh_id, coso_id 
+    });
 
     return res.status(201).json({
       success: true,
@@ -76,7 +104,6 @@ const createLop = async (req, res) => {
     });
   }
 };
-
 
 
 module.exports = {

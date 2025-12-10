@@ -1,8 +1,11 @@
 'use strict';
 const db = require('../models');
 const dayjs = require('dayjs');
-
-/**
+let uuidv4;
+(async () => {
+  const uuid = await import('uuid');
+  uuidv4 = uuid.v4;
+})();/**
  * Tạo phân công và tự động sinh buổi học
  * POST /api/phan-cong-auto/create
  * Body: {
@@ -603,82 +606,491 @@ const capNhatHangLoatBuoiHoc = async (req, res) => {
 // };
 
 
+// const taoLopHocPhanVaBuoiHoc = async (req, res) => {
+//   const transaction = await db.sequelize.transaction();
+  
+//   try {
+//     const {
+//       giangvien_id,
+//       hocky_id,
+//       monhoc_id,
+//       lop_hanhchinh_id,
+//       thu,
+//       gio_batdau,
+//       gio_ketthuc,
+//       phong,
+//       ngay_batdau,
+//       so_tiet
+//     } = req.body;
+
+//     if (!giangvien_id || !hocky_id || !monhoc_id || !lop_hanhchinh_id || !thu || !ngay_batdau || !so_tiet) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Thiếu thông tin bắt buộc'
+//       });
+//     }
+
+//     // 1. Lấy tài khoản giảng viên
+//     const giangVien = await db.GiangVien.findByPk(giangvien_id, {
+//       include: [{
+//         model: db.TaiKhoan,
+//         as: 'TaiKhoan',
+//         attributes: ['taikhoan_id']
+//       }]
+//     });
+
+//     if (!giangVien || !giangVien.TaiKhoan) {
+//       await transaction.rollback();
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Không tìm thấy tài khoản giảng viên'
+//       });
+//     }
+
+//     const taikhoan_id = giangVien.TaiKhoan.taikhoan_id;
+
+//     // 2. Lấy môn học
+//     const monHoc = await db.MonHoc.findByPk(monhoc_id);
+//     if (!monHoc) {
+//       await transaction.rollback();
+//       return res.status(404).json({ success: false, message: "Không tìm thấy môn học" });
+//     }
+
+//     // 3. Lấy lớp hành chính
+//     const lopHanhChinh = await db.LopHanhChinh.findByPk(lop_hanhchinh_id);
+//     if (!lopHanhChinh) {
+//       await transaction.rollback();
+//       return res.status(404).json({ success: false, message: "Không tìm thấy lớp hành chính" });
+//     }
+
+//     // ===== GHÉP MÃ LỚP HỌC PHẦN =====
+//     const lophocphan_id = `${monHoc.ma_mon}_${lopHanhChinh.ten_lop}`;
+
+//     const checkExist = await db.LopHocPhan.findByPk(lophocphan_id);
+//     if (checkExist) {
+//       await transaction.rollback();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Mã lớp học phần đã tồn tại"
+//       });
+//     }
+
+//     // ===== 1. Tạo lớp học phần =====
+//     const lopHocPhan = await db.LopHocPhan.create({
+//       lophocphan_id,
+//       giangvien_id,
+//       hocky_id,
+//       monhoc_id,
+//       lop_hanhchinh_id,
+//       thu,
+//       gio_batdau,
+//       gio_ketthuc,
+//       phong,
+//       ngay_tao: new Date()
+//     }, { transaction });
+
+//     // ===== 2. Tạo buổi học =====
+//     const daysOfWeek = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+//     const targetDay = daysOfWeek[thu];
+
+//     if (targetDay === undefined) {
+//       await transaction.rollback();
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Thứ không hợp lệ. Sử dụng: Mon, Tue, Wed, Thu, Fri, Sat, Sun'
+//       });
+//     }
+
+//     const buoiHocList = [];
+//     let currentDate = dayjs(ngay_batdau);
+
+//     while (currentDate.day() !== targetDay) {
+//       currentDate = currentDate.add(1, 'day');
+//     }
+
+//     for (let i = 0; i < so_tiet; i++) {
+//       const ngay = currentDate.format("YYYY-MM-DD");
+
+//       buoiHocList.push({
+//         lophocphan_id: lophocphan_id,
+//         ngay,
+//         batdau: `${ngay} ${gio_batdau}`,
+//         ketthuc: `${ngay} ${gio_ketthuc}`,
+//         trangthai: 'scheduled',
+//         nguoi_tao: taikhoan_id,
+//         ngay_tao: new Date(),
+//       });
+
+//       currentDate = currentDate.add(7, "day");
+//     }
+
+//     await db.BuoiHoc.bulkCreate(buoiHocList, { transaction });
+
+//     // ===== 3. Auto đưa toàn bộ sinh viên vào lớp học phần =====
+//     const danhSachSinhVien = await db.SinhVien.findAll({
+//       where: { lop_hanhchinh_id },
+//       attributes: ['sinhvien_id']
+//     });
+
+//     if (danhSachSinhVien.length > 0) {
+//       const dkList = danhSachSinhVien.map(sv => ({
+//         sinhvien_id: sv.sinhvien_id,
+//         lophocphan_id: lophocphan_id,
+//         ngay_dangky: new Date(),
+//         trangthai: 'active'
+//       }));
+
+//       // UNIQUE INDEX tự xử lý duplicate
+//       await db.DangKyHoc.bulkCreate(dkList, {
+//         ignoreDuplicates: true,     // MySQL hỗ trợ
+//         transaction
+//       });
+//     }
+
+//     await transaction.commit();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: `Tạo lớp học phần + ${so_tiet} buổi học + auto thêm ${danhSachSinhVien.length} sinh viên thành công.`,
+//       data: {
+//         lophocphan_id,
+//         so_buoi_hoc_tao: so_tiet,
+//         so_sinhvien_them: danhSachSinhVien.length
+//       }
+//     });
+
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error("Lỗi tạo lớp học phần:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// };
+
+// API tạo lớp học phần hoàn chỉnh
+// Yêu cầu: Sequelize, dayjs
+
+
+
+/**
+ * POST /lophocphan
+ * Body:
+ * {
+ *   giangvien_id,
+ *   hocky_id,
+ *   monhoc_id,
+ *   lop_hanhchinh_ids: [],    // nhiều lớp hành chính
+ *   thu,
+ *   gio_batdau,
+ *   gio_ketthuc,
+ *   phong,
+ *   ngay_batdau,
+ *   so_tuan
+ * }
+ */
+
 const taoLopHocPhanVaBuoiHoc = async (req, res) => {
   const transaction = await db.sequelize.transaction();
-  
+
   try {
     const {
       giangvien_id,
       hocky_id,
       monhoc_id,
-      lop_hanhchinh_id,
+      lop_hanhchinh_ids,
       thu,
       gio_batdau,
       gio_ketthuc,
       phong,
       ngay_batdau,
-      so_tiet
+      so_tuan,
     } = req.body;
 
-    if (!giangvien_id || !hocky_id || !monhoc_id || !lop_hanhchinh_id || !thu || !ngay_batdau || !so_tiet) {
-      return res.status(400).json({
-        success: false,
-        message: 'Thiếu thông tin bắt buộc'
-      });
+    // ================= VALIDATION =================
+
+    if (!giangvien_id || !hocky_id || !monhoc_id || !lop_hanhchinh_ids || lop_hanhchinh_ids.length === 0 || !thu || !ngay_batdau || !so_tuan) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
 
-    // 1. Lấy tài khoản giảng viên
-    const giangVien = await db.GiangVien.findByPk(giangvien_id, {
-      include: [{
-        model: db.TaiKhoan,
-        as: 'TaiKhoan',
-        attributes: ['taikhoan_id']
-      }]
-    });
-
-    if (!giangVien || !giangVien.TaiKhoan) {
-      await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy tài khoản giảng viên'
-      });
-    }
-
-    const taikhoan_id = giangVien.TaiKhoan.taikhoan_id;
-
-    // 2. Lấy môn học
+    // 1. Lấy môn học
     const monHoc = await db.MonHoc.findByPk(monhoc_id);
     if (!monHoc) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: "Không tìm thấy môn học" });
     }
 
-    // 3. Lấy lớp hành chính
-    const lopHanhChinh = await db.LopHanhChinh.findByPk(lop_hanhchinh_id);
-    if (!lopHanhChinh) {
+    // 2. Lấy danh sách lớp hành chính
+    const dsLHC = await db.LopHanhChinh.findAll({
+      where: { lop_hanhchinh_id: lop_hanhchinh_ids },
+    });
+
+    if (dsLHC.length !== lop_hanhchinh_ids.length) {
       await transaction.rollback();
-      return res.status(404).json({ success: false, message: "Không tìm thấy lớp hành chính" });
+      return res.status(404).json({ success: false, message: "Có lớp hành chính không tồn tại" });
     }
 
-    // ===== GHÉP MÃ LỚP HỌC PHẦN =====
-    const lophocphan_id = `${monHoc.ma_mon}_${lopHanhChinh.ten_lop}`;
+    // ================= SINH TEN LỚP HỌC PHẦN =================
 
-    const checkExist = await db.LopHocPhan.findByPk(lophocphan_id);
-    if (checkExist) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Mã lớp học phần đã tồn tại"
-      });
-    }
+    const ten_lop_ghep = dsLHC.map((l) => l.ten_lop).join("_");
+    const ten_lophocphan = `${monHoc.ma_mon}_${ten_lop_ghep}`;
 
-    // ===== 1. Tạo lớp học phần =====
-    const lopHocPhan = await db.LopHocPhan.create({
+    // ================= TẠO LỚP HỌC PHẦN =================
+
+    const lophocphan_id = uuidv4();
+
+    const lop = await db.LopHocPhan.create(
+      {
+        lophocphan_id,
+        monhoc_id,
+        giangvien_id,
+        hocky_id,
+        ten_lophocphan,
+        thu,
+        gio_batdau,
+        gio_ketthuc,
+        phong,
+      },
+      { transaction }
+    );
+
+    // ================= GÁN LỚP HÀNH CHÍNH CHO LHP =================
+
+    const lhp_lhc_records = lop_hanhchinh_ids.map((id) => ({
       lophocphan_id,
+      lop_hanhchinh_id: id,
+    }));
+
+    await db.LHP_LHC.bulkCreate(lhp_lhc_records, { transaction });
+
+    // ================= TỰ ĐỘNG THÊM SINH VIÊN =================
+
+    // Lấy toàn bộ sinh viên thuộc các lớp hành chính
+    const dsSinhVien = await db.SinhVien.findAll({
+      where: { lop_hanhchinh_id: lop_hanhchinh_ids },
+      attributes: ["sinhvien_id"],
+    });
+
+    const dkList = dsSinhVien.map((sv) => ({
+      dkh_id: uuidv4(),
+      sinhvien_id: sv.sinhvien_id,
+      lophocphan_id,
+    }));
+
+    await db.DangKyHoc.bulkCreate(dkList, {
+      ignoreDuplicates: true,
+      transaction,
+    });
+
+    // ================= TẠO BUỔI HỌC =================
+
+    const ngayBatDau = dayjs(ngay_batdau);
+    const daysOfWeek = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+    const targetDay = daysOfWeek[thu];
+
+    if (targetDay === undefined) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Thứ không hợp lệ" });
+    }
+
+    let currentDate = ngayBatDau;
+    while (currentDate.day() !== targetDay) {
+      currentDate = currentDate.add(1, "day");
+    }
+
+    const buoiList = [];
+
+    for (let i = 0; i < so_tuan; i++) {
+      const ngayHoc = currentDate.format("YYYY-MM-DD");
+
+      buoiList.push({
+        buoi_id: uuidv4(),
+        lophocphan_id,
+        ngay: ngayHoc,
+        gio_batdau,
+        gio_ketthuc,
+      });
+
+      currentDate = currentDate.add(7, "day");
+    }
+
+    await db.BuoiHoc.bulkCreate(buoiList, { transaction });
+
+    // ================= DONE =================
+
+    await transaction.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: `Tạo LHP thành công: ${ten_lophocphan}`,
+      data: {
+        lophocphan_id,
+        ten_lophocphan,
+        so_lop_hanhchinh: lop_hanhchinh_ids.length,
+        so_sinhvien: dsSinhVien.length,
+        so_buoi_hoc: so_tuan,
+      },
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// module.exports = { taoLopHocPhan };
+
+
+// const taoLopHocLai = async (req, res) => {
+//   const transaction = await db.sequelize.transaction();
+
+//   try {
+//     const {
+//       giangvien_id,
+//       hocky_id,
+//       monhoc_id,
+//       lop_hanhchinh_id,
+//       thu,
+//       gio_batdau,
+//       gio_ketthuc,
+//       phong,
+//       ngay_batdau,
+//       so_tuan,
+//     } = req.body;
+
+//     if (!giangvien_id || !hocky_id || !monhoc_id || !lop_hanhchinh_id || !thu || !ngay_batdau || !so_tuan) {
+//       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
+//     }
+
+//     // 1. Lấy môn học
+//     const monHoc = await db.MonHoc.findByPk(monhoc_id);
+//     if (!monHoc) {
+//       await transaction.rollback();
+//       return res.status(404).json({ success: false, message: "Không tìm thấy môn học" });
+//     }
+
+//     // 2. Lấy lớp hành chính
+//     const lopHC = await db.LopHanhChinh.findByPk(lop_hanhchinh_id);
+//     if (!lopHC) {
+//       await transaction.rollback();
+//       return res.status(404).json({ success: false, message: "Không tìm thấy lớp hành chính" });
+//     }
+
+//     // 3. Sinh tên lớp học phần HL
+//     const ten_lop_hc = lopHC.ten_lop.replace(/\s+/g, "");
+//     const ten_lophocphan = `HL_${monHoc.ma_mon}_${ten_lop_hc}`;
+//     const lophocphan_id = uuidv4();
+
+//     // 4. Tạo lớp học lại
+//     const lop = await db.LopHocPhan.create(
+//       {
+//         lophocphan_id,
+//         monhoc_id,
+//         giangvien_id,
+//         hocky_id,
+//         ten_lophocphan,
+//         thu,
+//         gio_batdau,
+//         gio_ketthuc,
+//         phong,
+//       },
+//       { transaction }
+//     );
+
+//     // 5. Tạo buổi học
+//     const daysOfWeek = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+//     const targetDay = daysOfWeek[thu];
+
+//     if (targetDay === undefined) {
+//       await transaction.rollback();
+//       return res.status(400).json({ success: false, message: "Thứ không hợp lệ" });
+//     }
+
+//     let currentDate = dayjs(ngay_batdau);
+//     while (currentDate.day() !== targetDay) {
+//       currentDate = currentDate.add(1, "day");
+//     }
+
+//     const buoiList = [];
+//     for (let i = 0; i < so_tuan; i++) {
+//       const ngayHoc = currentDate.format("YYYY-MM-DD");
+
+//       buoiList.push({
+//         buoi_id: uuidv4(),
+//         lophocphan_id,
+//         ngay: ngayHoc,
+//         gio_batdau,
+//         gio_ketthuc,
+//       });
+
+//       currentDate = currentDate.add(7, "day");
+//     }
+
+//     await db.BuoiHoc.bulkCreate(buoiList, { transaction });
+
+//     await transaction.commit();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: `Tạo lớp học lại thành công: ${ten_lophocphan}`,
+//       data: {
+//         lophocphan_id,
+//         ten_lophocphan,
+//         so_buoi_hoc: so_tuan,
+//       },
+//     });
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error("Lỗi tạo lớp học lại:", error);
+//     return res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+
+
+const taoLopHocLai = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const {
       giangvien_id,
       hocky_id,
       monhoc_id,
-      lop_hanhchinh_id,
+      thu,
+      gio_batdau,
+      gio_ketthuc,
+      phong,
+      ngay_batdau,
+      so_tuan
+    } = req.body;
+
+    if (!giangvien_id || !hocky_id || !monhoc_id || !thu || !ngay_batdau || !so_tuan) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
+    }
+
+    // Lấy môn học
+    const monHoc = await db.MonHoc.findByPk(monhoc_id);
+    if (!monHoc) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: "Không tìm thấy môn học" });
+    }
+
+    // Tạo mã lớp học lại: HL_<ma_mon>
+    const ten_lophocphan = `HL_${monHoc.ma_mon}`;
+    const checkExist = await db.LopHocPhan.findOne({ where: { ten_lophocphan } });
+    if (checkExist) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Lớp học lại đã tồn tại" });
+    }
+
+    const lophocphan_id = uuidv4();
+
+    // Tạo lớp học phần
+    await db.LopHocPhan.create({
+      lophocphan_id,
+      monhoc_id,
+      giangvien_id,
+      hocky_id,
+      ten_lophocphan,
       thu,
       gio_batdau,
       gio_ketthuc,
@@ -686,83 +1098,48 @@ const taoLopHocPhanVaBuoiHoc = async (req, res) => {
       ngay_tao: new Date()
     }, { transaction });
 
-    // ===== 2. Tạo buổi học =====
+    // ===== Tạo buổi học =====
     const daysOfWeek = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
     const targetDay = daysOfWeek[thu];
-
     if (targetDay === undefined) {
       await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Thứ không hợp lệ. Sử dụng: Mon, Tue, Wed, Thu, Fri, Sat, Sun'
-      });
+      return res.status(400).json({ success: false, message: "Thứ không hợp lệ" });
     }
 
-    const buoiHocList = [];
     let currentDate = dayjs(ngay_batdau);
+    while (currentDate.day() !== targetDay) currentDate = currentDate.add(1, "day");
 
-    while (currentDate.day() !== targetDay) {
-      currentDate = currentDate.add(1, 'day');
-    }
-
-    for (let i = 0; i < so_tiet; i++) {
-      const ngay = currentDate.format("YYYY-MM-DD");
-
-      buoiHocList.push({
-        lophocphan_id: lophocphan_id,
-        ngay,
-        batdau: `${ngay} ${gio_batdau}`,
-        ketthuc: `${ngay} ${gio_ketthuc}`,
-        trangthai: 'scheduled',
-        nguoi_tao: taikhoan_id,
-        ngay_tao: new Date(),
+    const buoiList = [];
+    for (let i = 0; i < so_tuan; i++) {
+      const ngayHoc = currentDate.format("YYYY-MM-DD");
+      buoiList.push({
+        buoi_id: uuidv4(),
+        lophocphan_id,
+        ngay: ngayHoc,
+        gio_batdau,
+        gio_ketthuc
       });
-
       currentDate = currentDate.add(7, "day");
     }
 
-    await db.BuoiHoc.bulkCreate(buoiHocList, { transaction });
-
-    // ===== 3. Auto đưa toàn bộ sinh viên vào lớp học phần =====
-    const danhSachSinhVien = await db.SinhVien.findAll({
-      where: { lop_hanhchinh_id },
-      attributes: ['sinhvien_id']
-    });
-
-    if (danhSachSinhVien.length > 0) {
-      const dkList = danhSachSinhVien.map(sv => ({
-        sinhvien_id: sv.sinhvien_id,
-        lophocphan_id: lophocphan_id,
-        ngay_dangky: new Date(),
-        trangthai: 'active'
-      }));
-
-      // UNIQUE INDEX tự xử lý duplicate
-      await db.DangKyHoc.bulkCreate(dkList, {
-        ignoreDuplicates: true,     // MySQL hỗ trợ
-        transaction
-      });
-    }
+    await db.BuoiHoc.bulkCreate(buoiList, { transaction });
 
     await transaction.commit();
 
     return res.status(201).json({
       success: true,
-      message: `Tạo lớp học phần + ${so_tiet} buổi học + auto thêm ${danhSachSinhVien.length} sinh viên thành công.`,
+      message: `Tạo lớp học lại thành công: ${ten_lophocphan}`,
       data: {
         lophocphan_id,
-        so_buoi_hoc_tao: so_tiet,
-        so_sinhvien_them: danhSachSinhVien.length
+        ten_lophocphan,
+        so_buoi_hoc: so_tuan
       }
     });
 
   } catch (error) {
     await transaction.rollback();
-    console.error("Lỗi tạo lớp học phần:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    console.error("Lỗi tạo lớp học lại:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -776,5 +1153,6 @@ module.exports = {
   huyBuoiHoc,
   xoaBuoiHoc,
   layDanhSachBuoiHoc,
-  capNhatHangLoatBuoiHoc
+  capNhatHangLoatBuoiHoc,
+  taoLopHocLai
 };

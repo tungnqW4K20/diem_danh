@@ -6,14 +6,25 @@ const getAllKhoa = async () => {
         const data = await db.Khoa.findAll({
             attributes: ['khoa_id', 'ma_khoa', 'ten_khoa', 'mota'],
             include: [
+                // 1. Lấy danh sách Lớp hành chính (Code cũ của bạn)
                 {
                     model: db.LopHanhChinh,
-                    as: 'DanhSachLopHanhChinh', // Phải khớp với alias trong file models/Khoa.js
+                    as: 'DanhSachLopHanhChinh', 
                     attributes: ['lop_hanhchinh_id', 'ten_lop', 'nien_khoa']
+                },
+                // 2. --- MỚI THÊM: Lấy luôn danh sách Chuyên Ngành ---
+                {
+                    model: db.ChuyenNganh,
+                    as: 'DanhSachChuyenNganh', // Phải trùng với "as" trong file models/Khoa.js
+                    attributes: ['chuyennganh_id', 'ten_chuyennganh', 'ma_chuyennganh']
                 }
             ],
-            order: [['ten_khoa', 'ASC']],
-            raw: false, // Để false để include hoạt động trả về cấu trúc lồng nhau (nested)
+            order: [
+                ['ten_khoa', 'ASC'], // Sắp xếp khoa A-Z
+                // Sắp xếp chuyên ngành bên trong khoa A-Z
+                [{ model: db.ChuyenNganh, as: 'DanhSachChuyenNganh' }, 'ten_chuyennganh', 'ASC'] 
+            ],
+            raw: false, 
             nest: true
         });
         return {
@@ -25,7 +36,6 @@ const getAllKhoa = async () => {
         throw error;
     }
 };
-
 const getKhoaById = async (khoaId) => {
     try {
         if (!khoaId) {

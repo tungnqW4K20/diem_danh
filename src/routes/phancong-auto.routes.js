@@ -21,5 +21,9 @@ router.delete('/buoi-hoc/:buoi_id/force', phanCongAutoController.xoaBuoiHoc);
 // Cập nhật hàng loạt buổi học
 router.put('/:lophocphan_id/buoi-hoc/bulk', phanCongAutoController.capNhatHangLoatBuoiHoc);
 
+router.post('/create/lop-hoc-lai', phanCongAutoController.taoLopHocLai);
+
 module.exports = router;
+
+
 

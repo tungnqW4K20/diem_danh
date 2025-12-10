@@ -47,7 +47,48 @@ const getAll = async (req, res) => {
     }
 };
 
+
+
+const layDanhSachLopHocLai = async (req, res) => {
+  try {
+    const lopHocLaiList = await lopHocPhanService.getAllLopHocLai();
+    res.json({
+      success: true,
+      data: lopHocLaiList
+    });
+  } catch (error) {
+    console.error('Lỗi lấy lớp học lại:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// GET /api/lophoclai/:lophocphan_id/sinhvien
+const laySinhVienLopHocLai = async (req, res) => {
+  try {
+    const { lophocphan_id } = req.params;
+    const svList = await lopHocPhanService.getSinhVienByLopHocLai(lophocphan_id);
+    res.json({
+      success: true,
+      data: svList
+    });
+  } catch (error) {
+    console.error('Lỗi lấy sinh viên lớp học lại:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
+
 module.exports = { 
   getStudentsByLopHocPhan,
-  getAll
+  getAll,
+  layDanhSachLopHocLai,
+  laySinhVienLopHocLai  
  };

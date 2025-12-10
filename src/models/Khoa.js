@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'khoa_id',
         as: 'DanhSachMonHoc'
       });
+      Khoa.hasMany(models.ChuyenNganh, {
+        foreignKey: 'khoa_id',
+        as: 'DanhSachChuyenNganh'
+      });
     }
   }
 
@@ -47,6 +51,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false, // Mặc định là chưa xóa
         allowNull: false
       },
+      
     },
     {
       sequelize,

@@ -7,21 +7,33 @@ module.exports = (sequelize, DataTypes) => {
       LopHocPhan.belongsTo(models.MonHoc, { foreignKey: 'monhoc_id' });
       LopHocPhan.belongsTo(models.GiangVien, { foreignKey: 'giangvien_id' });
       LopHocPhan.belongsTo(models.HocKy, { foreignKey: 'hocky_id' });
-LopHocPhan.belongsTo(models.LopHanhChinh, {
-  foreignKey: 'lop_hanhchinh_id',
-  as: 'LopHanhChinh'
-});
-      LopHocPhan.hasMany(models.DangKyHoc, {
+
+      // Quan hệ N-N với LopHanhChinh qua bảng trung gian
+      LopHocPhan.belongsToMany(models.LopHanhChinh, {
+        through: models.LHP_LHC,
         foreignKey: 'lophocphan_id',
-        as: 'DangKy'
+        otherKey: 'lop_hanhchinh_id',
+        as: 'DanhSachLopHanhChinh'
       });
 
+      // Buổi học & đăng ký
       LopHocPhan.hasMany(models.BuoiHoc, {
         foreignKey: 'lophocphan_id',
         as: 'DanhSachBuoiHoc'
       });
+
+      LopHocPhan.hasMany(models.DangKyHoc, {
+        foreignKey: 'lophocphan_id',
+        as: 'DangKy'
+      });
+      LopHocPhan.belongsTo(models.CoSo, {
+        foreignKey: 'coso_id',
+        as: 'CoSo'
+      });
     }
   }
+
+
 
   LopHocPhan.init(
     {
@@ -30,20 +42,47 @@ LopHocPhan.belongsTo(models.LopHanhChinh, {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
       },
-      monhoc_id: DataTypes.UUID,
-      giangvien_id: DataTypes.UUID,
-      hocky_id: DataTypes.UUID,
-      lop_id: DataTypes.UUID,
-      phong: DataTypes.STRING(200),
-      thu: {
-        type: DataTypes.ENUM('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+      ten_lophocphan : {
+        type: DataTypes.STRING(200),
+        allowNull: true
       },
-      gio_batdau: DataTypes.TIME,
-      gio_ketthuc: DataTypes.TIME,
+      monhoc_id: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      giangvien_id: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      hocky_id: {
+        type: DataTypes.UUID,
+        allowNull: false
+      },
+      phong: {
+        type: DataTypes.STRING(200),
+        allowNull: true
+      },
+      thu: {
+        type: DataTypes.ENUM('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'),
+        allowNull: false
+      },
+      gio_batdau: {
+        type: DataTypes.TIME,
+        allowNull: false
+      },
+      gio_ketthuc: {
+        type: DataTypes.TIME,
+        allowNull: false
+      },
       ngay_tao: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
-      }
+      },
+      coso_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: { model: 'CoSo', key: 'coso_id' }
+      },
     },
     {
       sequelize,

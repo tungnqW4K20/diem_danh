@@ -16,32 +16,75 @@ const db = require('../models');
 // };
 
 
+
+
 // const getAllLop = async () => {
-//     try {
-//         // THAY ĐỔI TỪ db.Lop THÀNH db.LopHanhChinh
-//         const lopList = await db.LopHanhChinh.findAll({
-//             order: [
-//                 ['nien_khoa', 'DESC'],
-//                 ['ten_lop', 'ASC']
-//             ],
-//             // Sửa lại tên trường ID cho khớp với model LopHanhChinh
-//             attributes: ['lop_hanhchinh_id', 'ten_lop', 'nien_khoa', 'chuong_trinh','khoa_id'],
-//             include: [
-//                 {
-//                     model: db.Khoa,
-//                     as: 'khoa', 
-//                     attributes: ['khoa_id', 'ten_khoa', 'ma_khoa'] 
-//                 }
-//             ],
-//         });
-        
-//         return lopList;
-//     } catch (error) {
-//         throw new Error(`Lỗi khi truy vấn danh sách lớp học: ${error.message}`);
-//     }
+//   try {
+//     // 1️⃣ Lấy dữ liệu
+//     const lopList = await db.LopHanhChinh.findAll({
+//       order: [
+//         ['nien_khoa', 'DESC'],
+//         ['ten_lop', 'ASC']
+//       ],
+//       attributes: [
+//         'lop_hanhchinh_id',
+//         'ten_lop',
+//         'nien_khoa',
+//         'chuong_trinh',
+//         'khoa_id',
+//         'giangvien_id',
+
+//         // 🟢 SĨ SỐ SINH VIÊN
+//         [
+//           db.Sequelize.literal(`(
+//             SELECT COUNT(*) 
+//             FROM SinhVien AS sv 
+//             WHERE sv.lop_hanhchinh_id = LopHanhChinh.lop_hanhchinh_id
+//             AND sv.isDeleted = 0
+//           )`),
+//           'si_so'
+//         ]
+//       ],
+//       include: [
+//         // 🟢 Thông tin Khoa
+//         {
+//           model: db.Khoa,
+//           as: 'Khoa',
+//           attributes: ['khoa_id', 'ten_khoa', 'ma_khoa']
+//         },
+
+//         // 🟢 Thông tin Giảng viên chủ nhiệm
+//         {
+//           model: db.GiangVien,
+//           as: 'GVCN',
+//           attributes: ['giangvien_id', 'ho', 'ten', 'email', 'sdt']
+//         }
+//       ]
+//     });
+
+//     // 2️⃣ Ghép họ + tên thành ho_ten
+//     const lopListWithHoTen = lopList.map(lop => {
+//       const lopJson = lop.toJSON();
+//       if (lopJson.GVCN) {
+//         lopJson.GVCN.ho_ten = `${lopJson.GVCN.ho} ${lopJson.GVCN.ten}`;
+//       }
+//       return lopJson;
+//     });
+
+//     return {
+//       success: true,
+//       message: "Lấy danh sách lớp học thành công.",
+//       data: lopListWithHoTen
+//     };
+
+//   } catch (error) {
+//     return {
+//       success: false,
+//       message: `Lỗi khi truy vấn danh sách lớp học: ${error.message}`,
+//       data: []
+//     };
+//   }
 // };
-
-
 const getAllLop = async () => {
   try {
     // 1️⃣ Lấy dữ liệu
@@ -54,11 +97,12 @@ const getAllLop = async () => {
         'lop_hanhchinh_id',
         'ten_lop',
         'nien_khoa',
-        'chuong_trinh',
+        'chuong_trinh', // Vẫn giữ chương trình (Đại học/CĐ)
         'khoa_id',
         'giangvien_id',
+        'chuyennganh_id', // <-- Đảm bảo lấy ID này
 
-        // 🟢 SĨ SỐ SINH VIÊN
+        // SĨ SỐ SINH VIÊN
         [
           db.Sequelize.literal(`(
             SELECT COUNT(*) 
@@ -70,23 +114,28 @@ const getAllLop = async () => {
         ]
       ],
       include: [
-        // 🟢 Thông tin Khoa
+        // Thông tin Khoa
         {
           model: db.Khoa,
           as: 'Khoa',
           attributes: ['khoa_id', 'ten_khoa', 'ma_khoa']
         },
-
-        // 🟢 Thông tin Giảng viên chủ nhiệm
+        // Thông tin Giảng viên chủ nhiệm
         {
           model: db.GiangVien,
           as: 'GVCN',
           attributes: ['giangvien_id', 'ho', 'ten', 'email', 'sdt']
+        },
+        // 🟢 MỚI THÊM: Thông tin Chuyên ngành
+        {
+          model: db.ChuyenNganh,
+          as: 'ChuyenNganh',
+          attributes: ['ten_chuyennganh', 'ma_chuyennganh']
         }
       ]
     });
 
-    // 2️⃣ Ghép họ + tên thành ho_ten
+    // 2️⃣ Xử lý dữ liệu trước khi trả về (Optional: flatten data nếu muốn)
     const lopListWithHoTen = lopList.map(lop => {
       const lopJson = lop.toJSON();
       if (lopJson.GVCN) {
@@ -110,7 +159,6 @@ const getAllLop = async () => {
   }
 };
 
-
 const getStudentsByClassId = async (lophocphan_id) => {
   return await db.DangKyHoc.findAll({
     where: { lophocphan_id },
@@ -124,6 +172,23 @@ const getStudentsByClassId = async (lophocphan_id) => {
 };
 
 
+// const createLop = async (data) => {
+//   try {
+//     const newLop = await db.LopHanhChinh.create({
+//       ten_lop: data.ten_lop,
+//       nien_khoa: data.nien_khoa,
+//       chuong_trinh: data.chuong_trinh,
+//       khoa_id: data.khoa_id || null,
+//       giangvien_id: data.giangvien_id || null,
+//       ghichu: data.ghichu || null
+//     });
+
+//     return newLop;
+//   } catch (error) {
+//     throw new Error(`Lỗi khi tạo lớp: ${error.message}`);
+//   }
+// };
+
 const createLop = async (data) => {
   try {
     const newLop = await db.LopHanhChinh.create({
@@ -132,6 +197,9 @@ const createLop = async (data) => {
       chuong_trinh: data.chuong_trinh,
       khoa_id: data.khoa_id || null,
       giangvien_id: data.giangvien_id || null,
+      // Cập nhật thêm trường mới
+      chuyennganh_id: data.chuyennganh_id || null,
+      coso_id: data.coso_id || null, // Thêm luôn cơ sở nếu bạn muốn làm luôn
       ghichu: data.ghichu || null
     });
 
@@ -140,8 +208,6 @@ const createLop = async (data) => {
     throw new Error(`Lỗi khi tạo lớp: ${error.message}`);
   }
 };
-
-
 
 
 module.exports = {

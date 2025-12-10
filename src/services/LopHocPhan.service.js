@@ -1,4 +1,6 @@
 const db = require('../models');
+const { Op } = require('sequelize');
+
 
 // const getStudentsByLopHocPhan = async (lophocphan_id, ngay) => {
 //   try {
@@ -120,10 +122,49 @@ const getAllLopHocPhan = async (query) => {
 };
 
 
+const getAllLopHocLai = async () => {
+  return await db.LopHocPhan.findAll({
+    where: {
+      ten_lophocphan: { [Op.like]: 'HL_%' } // lớp học lại bắt đầu bằng HL_
+    },
+    order: [['ten_lophocphan', 'ASC']]
+  });
+};
+
+// Lấy sinh viên trong lớp học lại
+const getSinhVienByLopHocLai = async (lophocphan_id) => {
+  return await db.DangKyHoc.findAll({
+    where: { lophocphan_id },
+    include: [
+      {
+        model: db.SinhVien,
+        as: 'SinhVien',
+        attributes: ['sinhvien_id', 'ten_sinhvien', 'lop_hanhchinh_id'],
+        include: [
+          {
+            model: db.LopHanhChinh,
+            as: 'LopHanhChinh',
+            attributes: ['ten_lop', 'khoa_id'],
+            include: [
+              {
+                model: db.Khoa,
+                as: 'Khoa',
+                attributes: ['ten_khoa']
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  });
+};
+
 
 module.exports = { 
   getStudentsByLopHocPhan,
-  getAllLopHocPhan   
+  getAllLopHocPhan,
+  getAllLopHocLai,
+  getSinhVienByLopHocLai   
 };
 
 

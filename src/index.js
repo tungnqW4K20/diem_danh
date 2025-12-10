@@ -8,6 +8,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 
+
 const authRoutes = require('./routes/auth.routes');
 const GiangVienRoutes = require('./routes/giangvien.routes');
 const LopRoutes = require('./routes/lop.routes');
@@ -21,6 +22,7 @@ const PhanCongAutoRoutes = require('./routes/phancong-auto.routes')
 const SinhVienRoute = require('./routes/sinhvien.routes')
 
 const MonHocRoute = require('./routes/monhoc.routes')
+const CoSoRoute = require('./routes/coso.routes')
 
 
 
@@ -50,6 +52,7 @@ db.sequelize.authenticate()
     app.use('/api/sinh-vien', SinhVienRoute);
     app.use('/api/phan-cong-auto', PhanCongAutoRoutes);
     app.use('/api/mon-hoc', MonHocRoute);
+    app.use('/api/co-so', CoSoRoute);
 
 
 
