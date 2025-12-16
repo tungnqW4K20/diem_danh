@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const monHocController = require('../controllers/monhoc.controller');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth.middleware');
 
 // GET: Lấy danh sách (có thể ?search=...)
 router.get('/', monHocController.handleGetAll);
@@ -9,12 +10,12 @@ router.get('/', monHocController.handleGetAll);
 router.get('/:id', monHocController.handleGetById);
 
 // POST: Tạo mới môn học
-router.post('/', monHocController.handleCreate);
+router.post('/',authenticateToken, authorizeRole('admin'), monHocController.handleCreate);
 
 // PUT: Cập nhật môn học
-router.put('/:id', monHocController.handleUpdate);
+router.put('/:id',authenticateToken, authorizeRole('admin'), monHocController.handleUpdate);
 
 // DELETE: Xóa môn học (Soft delete)
-router.delete('/:id', monHocController.handleDelete);
+router.delete('/:id',authenticateToken, authorizeRole('admin'), monHocController.handleDelete);
 
 module.exports = router;

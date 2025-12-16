@@ -2,9 +2,9 @@
 
 const express = require('express');
 const giangVienController = require('../controllers/giangvien.controller');
+const { authenticateToken, authorizeRole } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
-
 
 
 router.get('/:giangvien_id/phan-cong', giangVienController.getPhanCongTheoHocKy);
@@ -13,19 +13,16 @@ router.get('/', giangVienController.getAllGiangVien);
 router.get('/:giangvien_id/lich-giang-day', giangVienController.getLichGiangDay);
 router.get('/get-gv-by-khoa', giangVienController.handleGetGiangVienByMaKhoa);
 
-// 1. Lấy danh sách tất cả giảng viên
-// router.get('/', giangVienController.getAllGiangVien);
 
-// 2. Lấy chi tiết 1 giảng viên theo ID
+
 router.get('/:id', giangVienController.handleGetGiangVienById);
 
-// 3. Tạo mới giảng viên
-router.post('/', giangVienController.handleCreateGiangVien);
+router.post('/',authenticateToken, authorizeRole('admin'), giangVienController.handleCreateGiangVien);
 
-// 4. Cập nhật giảng viên
-router.put('/:id', giangVienController.handleUpdateGiangVien);
+router.put('/:id', authenticateToken, authorizeRole('admin'),giangVienController.handleUpdateGiangVien);
 
-// 5. Xóa giảng viên (Soft delete)
-router.delete('/:id', giangVienController.handleDeleteGiangVien);
+router.delete('/:id',authenticateToken, authorizeRole('admin'), giangVienController.handleDeleteGiangVien);
+
+router.get('/profile/:id', giangVienController.getProfile);
 
 module.exports = router;

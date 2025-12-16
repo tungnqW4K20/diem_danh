@@ -32,8 +32,8 @@ app.use(express.json());
 db.sequelize.authenticate()
   .then(() => {
     console.log(' Kết nối MySQL thành công!');
-    return db.sequelize.sync(); 
-    //return db.sequelize.sync({ alter: true }); // thay đổi cấu trúc bảng
+    //return db.sequelize.sync(); 
+    return db.sequelize.sync({ alter: true }); // thay đổi cấu trúc bảng
   })
 
   
@@ -55,6 +55,7 @@ db.sequelize.authenticate()
     app.use('/api/co-so', CoSoRoute);
 
 
+    
 
 
     app.listen(port, () => {

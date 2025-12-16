@@ -3,8 +3,8 @@ const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../
 const db = require('../models');
 const TaiKhoan = db.TaiKhoan;
 const GiangVien = db.GiangVien;
-const Admin = db.Admin;
-const CartItem = db.CartItem;
+// const Admin = db.Admin;
+// const CartItem = db.CartItem;
 const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_ROUNDS = 10;
 
@@ -62,49 +62,48 @@ const registerGiangVien = async (data) => {
 };
 
 
-const loginCustomer = async (loginData) => {
-    const { emailOrUsername, password } = loginData;
+// const loginCustomer = async (loginData) => {
+//     const { emailOrUsername, password } = loginData;
 
-    if (!emailOrUsername || !password) {
-        throw new Error('Vui lòng nhập email/username và mật khẩu.');
-    }
+//     if (!emailOrUsername || !password) {
+//         throw new Error('Vui lòng nhập email/username và mật khẩu.');
+//     }
 
-    const customer = await Customer.findOne({
-        where: {
-            [db.Sequelize.Op.or]: [
-                { email: emailOrUsername },
-                { username: emailOrUsername }
-            ]
-        }
-    });
+//     const customer = await Customer.findOne({
+//         where: {
+//             [db.Sequelize.Op.or]: [
+//                 { email: emailOrUsername },
+//                 { username: emailOrUsername }
+//             ]
+//         }
+//     });
 
-    if (!customer) {
-        throw new Error('Email/username hoặc mật khẩu không chính xác.');
-    }
+//     if (!customer) {
+//         throw new Error('Email/username hoặc mật khẩu không chính xác.');
+//     }
 
-    // So sánh mật khẩu trực tiếp (plaintext so với plaintext trong DB)
-    if (password !== customer.password) {
-        throw new Error('Email/username hoặc mật khẩu không chính xác.');
-    }
+//     // So sánh mật khẩu trực tiếp (plaintext so với plaintext trong DB)
+//     if (password !== customer.password) {
+//         throw new Error('Email/username hoặc mật khẩu không chính xác.');
+//     }
 
-    const payload = {
-        id: customer.id,
-        email: customer.email,
-        username: customer.username,
-        role: "customer"
-    };
+//     const payload = {
+//         id: customer.id,
+//         email: customer.email,
+//         username: customer.username,
+//         role: "customer"
+//     };
 
-    const token = generateToken(payload, 'customer');
-    const refreshToken = generateRefreshToken(payload, 'customer' )
-    const { password: _, ...customerInfo } = customer.toJSON();
-    const cartCount = await CartItem.sum('quantity', {
-        where: { customer_id: customer.id }
-    });
+//     const token = generateToken(payload, 'customer');
+//     const refreshToken = generateRefreshToken(payload, 'customer' )
+//     const { password: _, ...customerInfo } = customer.toJSON();
+//     const cartCount = await CartItem.sum('quantity', {
+//         where: { customer_id: customer.id }
+//     });
 
-    return { token, refreshToken, customer: customerInfo,  cartCount: cartCount || 0 };
-};
+//     return { token, refreshToken, customer: customerInfo,  cartCount: cartCount || 0 };
+// };
 const loginTaiKhoan = async ({ username, password }) => {
-  // 1. Tìm tài khoản theo username
   const account = await TaiKhoan.findOne({
     where: { username },
     include: [
@@ -120,76 +119,75 @@ const loginTaiKhoan = async ({ username, password }) => {
     throw new Error('Username hoặc mật khẩu không chính xác.');
   }
 
-  // 2. Chỉ cho phép tài khoản giảng viên đăng nhập
   if (account.vaitro !== "giangvien") {
     throw new Error("Tài khoản này không thuộc vai trò giảng viên.");
   }
 
-  // 3. Kiểm tra mật khẩu hash
   const isMatch = await bcrypt.compare(password, account.password_hash);
   if (!isMatch) {
     throw new Error('Username hoặc mật khẩu không chính xác.');
   }
 
-  // 4. Tạo payload token
   const payload = {
     taikhoan_id: account.taikhoan_id,
     vaitro: account.vaitro,
-    giangvien_id: account.ref_id // ref_id chính là giangvien_id
+    giangvien_id: account.ref_id 
   };
 
   const token = generateToken(payload);
-
-  // 5. Chuẩn hoá dữ liệu trả về
+  const refreshToken = generateRefreshToken(payload, 'giangvien');
   const accData = account.toJSON();
   delete accData.password_hash;
 
   return {
     token,
+    refreshToken,
     user: accData,
-    giangvien: account.GiangVien
+    giangvien: account.GiangVien,
   };
 };
 
-const loginAdmin = async (loginData) => {
-    const { username, password } = loginData;
 
-    if (!username || !password) {
-        throw new Error('Vui lòng nhập email/username và mật khẩu.');
-    }
-    console.log("username", username)
-    console.log("password", password)
-    console.log("db", db)
-    console.log("Admin", Admin)
 
-    const admin = await Admin.findOne({
-        where: {
-            [db.Sequelize.Op.or]: [ { username: username }]
-        }
-    });
-    console.log("admin", admin)
-    if (!admin) {
-        throw new Error('Không tìm thấy admin');
-    }
+// const loginAdmin = async (loginData) => {
+//     const { username, password } = loginData;
 
-    const isPasswordMatch = password === admin.password;
+//     if (!username || !password) {
+//         throw new Error('Vui lòng nhập email/username và mật khẩu.');
+//     }
+//     console.log("username", username)
+//     console.log("password", password)
+//     console.log("db", db)
+//     console.log("Admin", Admin)
 
-    if (!isPasswordMatch) {
-        throw new Error('Email/username hoặc mật khẩu không chính xác.');
-    }
+//     const admin = await Admin.findOne({
+//         where: {
+//             [db.Sequelize.Op.or]: [ { username: username }]
+//         }
+//     });
+//     console.log("admin", admin)
+//     if (!admin) {
+//         throw new Error('Không tìm thấy admin');
+//     }
 
-    const payload = {
-        id: admin.id,
-        username: admin.username,
-        role: "admin"
-    };
+//     const isPasswordMatch = password === admin.password;
 
-    const token = generateToken(payload, 'admin');
-    const refreshToken = generateRefreshToken(payload, 'admin' )
+//     if (!isPasswordMatch) {
+//         throw new Error('Email/username hoặc mật khẩu không chính xác.');
+//     }
 
-    const { password: _, ...adminInfo } = admin.toJSON();
-    return { token, refreshToken, admin: adminInfo };
-};
+//     const payload = {
+//         id: admin.id,
+//         username: admin.username,
+//         role: "admin"
+//     };
+
+//     const token = generateToken(payload, 'admin');
+//     const refreshToken = generateRefreshToken(payload, 'admin' )
+
+//     const { password: _, ...adminInfo } = admin.toJSON();
+//     return { token, refreshToken, admin: adminInfo };
+// };
 
 const newRefreshToken = async () => {
     try {
@@ -226,11 +224,94 @@ const generateNewTokens = async (refreshToken) => {
     throw error
   }
 }
+
+
+
+const loginAdmin = async ({ username, password }) => {
+  if (!username || !password) {
+    throw new Error('Vui lòng nhập username và mật khẩu.');
+  }
+  const account = await TaiKhoan.findOne({ where: { username } });
+  if (!account) {
+    throw new Error('Username hoặc mật khẩu không chính xác.');
+  }
+  if (account.vaitro !== 'admin') {
+    throw new Error('Tài khoản này không phải là Admin.');
+  }
+
+  const isMatch = await bcrypt.compare(password, account.password_hash);
+  if (!isMatch) {
+    throw new Error('Username hoặc mật khẩu không chính xác.');
+  }
+
+  const payload = {
+    id: account.taikhoan_id,      
+    username: account.username,
+    role: 'admin'                 
+  };
+
+  console.log("👉 Payload login admin:", payload); 
+
+  const token = generateToken(payload, 'admin');
+  const refreshToken = generateRefreshToken(payload, 'admin');
+
+  const accData = account.toJSON();
+  delete accData.password_hash;
+
+  return {
+    token,
+    refreshToken, 
+    user: accData
+  };
+};
+
+
+const registerAdmin = async ({ username, password, secretKey }) => {
+  // 1. Kiểm tra Secret Key (Mã bí mật để được phép tạo admin)
+  // Bạn có thể lưu chuỗi này trong file .env (ví dụ: ADMIN_SECRET=MySuperSecretKey2025)
+  const ADMIN_CREATION_SECRET = process.env.ADMIN_CREATION_SECRET || "code_bi_mat_123";
+
+  if (secretKey !== ADMIN_CREATION_SECRET) {
+    throw new Error("Mã bí mật (secretKey) không đúng. Bạn không có quyền tạo Admin.");
+  }
+
+  // 2. Validate
+  if (!username || !password) {
+    throw new Error("Vui lòng nhập username và password.");
+  }
+
+  // 3. Check tồn tại
+  const exist = await TaiKhoan.findOne({ where: { username } });
+  if (exist) {
+    throw new Error("Username đã tồn tại.");
+  }
+
+  // 4. Hash password
+  const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  // 5. Tạo Admin
+  const newAdmin = await TaiKhoan.create({
+    username: username,
+    password_hash: password_hash,
+    vaitro: 'admin',
+    ref_id: null, // Admin hệ thống không cần liên kết giảng viên
+    ngay_tao: new Date()
+  });
+
+  // 6. Ẩn mật khẩu khi trả về
+  const result = newAdmin.toJSON();
+  delete result.password_hash;
+
+  return result;
+};
+
+
 module.exports = {
     registerGiangVien,
-    loginCustomer,
+    // loginCustomer,
     loginAdmin,
     newRefreshToken,
     generateNewTokens,
-    loginTaiKhoan
+    loginTaiKhoan,
+    registerAdmin
 };

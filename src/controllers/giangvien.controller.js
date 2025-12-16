@@ -149,6 +149,50 @@ const handleDeleteGiangVien = async (req, res) => {
 };
 
 
+
+const getProfile = async (req, res) => {
+  try {
+    // Lấy id từ params (GET /api/giang-vien/profile/:id)
+    // Hoặc lấy từ query (GET /api/giang-vien/profile?id=...)
+    const { id } = req.params; 
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng cung cấp ID giảng viên"
+      });
+    }
+
+    const data = await giangVienService.getThongTinGiangVien(id);
+
+    // Format dữ liệu cho khớp với UI (Optional)
+    const formattedData = {
+      giangvien_id: data.giangvien_id,
+      ho_ten: `${data.ho} ${data.ten}`, // Ghép tên hiển thị UI
+      ma_gv: data.ma_gv,
+      email: data.email,
+      sdt: data.sdt,
+      don_vi_cong_tac: data.Khoa ? data.Khoa.ten_khoa : 'Chưa cập nhật',
+      // Vì DB chưa có cột học vị, tạm thời hardcode hoặc để null
+      // Bạn nên thêm cột 'hoc_vi' vào bảng GiangVien
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Lấy thông tin giảng viên thành công",
+      data: formattedData
+    });
+
+  } catch (error) {
+    console.error("Lỗi getProfile:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
 module.exports = {
     getPhanCongTheoHocKy,
     getLichGiangDay,
@@ -157,5 +201,6 @@ module.exports = {
     handleCreateGiangVien,
     handleGetGiangVienById,
     handleUpdateGiangVien,
-    handleDeleteGiangVien
+    handleDeleteGiangVien,
+    getProfile
 };

@@ -23,15 +23,15 @@ return jwt.sign(plainPayload, JWT_SECRET, { expiresIn });
 };
 
 
-const generateRefreshToken = (payload, userType) => {
-    if (!payload || !payload.id || !payload.role) {
-        throw new Error('Payload for JWT must contain id and role.');
-    }
-    console.log("DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN",DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN)
-    console.log("DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN",DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN)
-    const expiresIn = userType === 'admin' ? DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN : DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN;
-    return jwt.sign(payload, JWT_SECRET_REFRESH_TOKEN, { expiresIn });
-};
+// const generateRefreshToken = (payload, userType) => {
+//     if (!payload || !payload.id || !payload.role) {
+//         throw new Error('Payload for JWT must contain id and role.');
+//     }
+//     console.log("DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN",DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN)
+//     console.log("DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN",DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN)
+//     const expiresIn = userType === 'admin' ? DEFAULT_REFRESH_TOKEN_CUSTOMER_EXPIRES_IN : DEFAULT_REFRESH_TOKEN_ADMIN_EXPIRES_IN;
+//     return jwt.sign(payload, JWT_SECRET_REFRESH_TOKEN, { expiresIn });
+// };
 
 
 
@@ -51,6 +51,20 @@ const verifyToken = (token) => {
     } catch (error) {
         throw error; 
     }
+};
+
+
+
+
+const generateRefreshToken = (payload, userType) => {
+    if (!payload) {
+        throw new Error('Payload is required');
+    }
+    const plainPayload = payload.toJSON ? payload.toJSON() : payload;
+    const expiresIn = userType === 'admin' 
+        ? (process.env.JWT_ADMIN_EXPIRES_IN || '7d') 
+        : (process.env.JWT_CUSTOMER_EXPIRES_IN || '24h');
+    return jwt.sign(plainPayload, JWT_SECRET_REFRESH_TOKEN, { expiresIn });
 };
 
 module.exports = {

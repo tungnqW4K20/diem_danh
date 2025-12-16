@@ -192,6 +192,40 @@ const deleteGiangVien = async (giangvien_id) => {
     }
 };
 
+
+const getThongTinGiangVien = async (giangvien_id) => {
+  try {
+    const giangVien = await db.GiangVien.findOne({
+      where: { giangvien_id },
+      attributes: [
+        'giangvien_id', 
+        'ma_gv', 
+        'ho', 
+        'ten', 
+        'email', 
+        'sdt',
+        // 'hoc_vi' // ⚠️ Nếu bạn đã thêm cột này vào DB thì uncomment
+      ],
+      include: [
+        {
+          model: db.Khoa,
+          as: 'Khoa', // Phải khớp với alias trong model GiangVien (belongsTo Khoa)
+          attributes: ['ten_khoa', 'ma_khoa']
+        }
+      ]
+    });
+
+    if (!giangVien) {
+      throw new Error('Không tìm thấy giảng viên');
+    }
+
+    return giangVien;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
 module.exports = {
     getPhanCongTheoHocKy, 
     getGiangVienByMaKhoa,
@@ -199,5 +233,6 @@ module.exports = {
     createGiangVien,
     getGiangVienById,
     updateGiangVien,
-    deleteGiangVien
+    deleteGiangVien,
+    getThongTinGiangVien
 };

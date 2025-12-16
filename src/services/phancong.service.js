@@ -1,7 +1,6 @@
 'use strict';
 const db = require('../models');
-
-
+const { Op } = require('sequelize'); // Cần import Op để dùng cho truy vấn ngày tháng
 
 const getLichGiangDay = async (giangvien_id, hocky_id) => {
   try {
@@ -10,8 +9,15 @@ const getLichGiangDay = async (giangvien_id, hocky_id) => {
         giangvien_id,
         hocky_id
       },
-
-      attributes: ['lophocphan_id', 'thu', 'gio_batdau', 'gio_ketthuc', 'phong'],
+      // ✅ THÊM ten_lophocphan VÀO ĐÂY
+      attributes: [
+        'lophocphan_id', 
+        'ten_lophocphan', 
+        'thu', 
+        'gio_batdau', 
+        'gio_ketthuc', 
+        'phong'
+      ],
 
       include: [
         {
@@ -25,15 +31,15 @@ const getLichGiangDay = async (giangvien_id, hocky_id) => {
         {
           model: db.LopHanhChinh,
           attributes: ['ten_lop'],
-          as: 'LopHanhChinh'
+          as: 'DanhSachLopHanhChinh', // ✅ SỬA ALIAS: Phải khớp với Model (hasMany/belongsToMany)
+          through: { attributes: [] } // Bỏ qua bảng trung gian
         },
-        // ⭐ THÊM BUỔI HỌC VÀO ĐÂY
         {
           model: db.BuoiHoc,
           as: 'DanhSachBuoiHoc',
           attributes: ['buoi_id', 'ngay', 'batdau', 'ketthuc', 'trangthai'],
-          required: false, // lấy cả lớp chưa có buổi học
-          separate: true,
+          required: false, // Lấy cả lớp chưa có buổi (để xem lịch tổng quát)
+          separate: true,  // Tách query giúp tối ưu tốc độ khi load nhiều buổi
           order: [['ngay', 'ASC']]
         }
       ],
@@ -55,54 +61,110 @@ const getLichGiangDay = async (giangvien_id, hocky_id) => {
   }
 };
 
-
 const getLichTheoNgay = async (giangvien_id, today, tomorrow) => {
-  const data = await db.LopHocPhan.findAll({
-    where: { giangvien_id },
-    include: [
-      { model: db.MonHoc, attributes: ["ten_mon"] },
-      { model: db.HocKy, attributes: ["ten_hocky"] },
-      {
-        model: db.BuoiHoc,
-        as: "DanhSachBuoiHoc",
-        where: { ngay: [today, tomorrow] },
-        required: false
-      }
-    ],
-    order: [["gio_batdau", "ASC"]]
-  });
-  return data
+  try {
+    const data = await db.LopHocPhan.findAll({
+      where: { giangvien_id },
+      // ✅ THÊM ten_lophocphan
+      attributes: [
+        'lophocphan_id', 
+        'ten_lophocphan', 
+        'phong', 
+        'gio_batdau', 
+        'gio_ketthuc',
+        'thu'
+      ],
+      include: [
+        { 
+          model: db.MonHoc, 
+          attributes: ["ten_mon", "ma_mon"] 
+        },
+        { 
+          model: db.HocKy, 
+          attributes: ["ten_hocky"] 
+        },
+        { 
+          model: db.LopHanhChinh, 
+          attributes: ["ten_lop"], 
+          as: 'DanhSachLopHanhChinh', // ✅ SỬA ALIAS
+          through: { attributes: [] }
+        },
+        {
+          model: db.BuoiHoc,
+          as: "DanhSachBuoiHoc",
+          where: { 
+            ngay: { [Op.in]: [today, tomorrow] } // ✅ Dùng Op.in để an toàn hơn
+          },
+          attributes: ['buoi_id', 'ngay', 'batdau', 'ketthuc', 'trangthai'],
+          required: true // ✅ QUAN TRỌNG: Chỉ lấy những lớp CÓ dạy vào ngày hôm đó
+        }
+      ],
+      order: [["gio_batdau", "ASC"]]
+    });
+    return data;
+  } catch (error) {
+    console.error("Lỗi getLichTheoNgay:", error);
+    throw error;
+  }
 };
 
 const getLichTuanNay = async (giangvien_id, startDate, endDate) => {
-  const data = await db.LopHocPhan.findAll({
-    where: { giangvien_id },
-    include: [
-      { model: db.MonHoc, attributes: ["ten_mon"] },
-      { model: db.HocKy, attributes: ["ten_hocky"] },
-      { model: db.LopHanhChinh, attributes: ["ten_lop"], as: 'LopHanhChinh' },
-      {
-        model: db.BuoiHoc,
-        as: "DanhSachBuoiHoc",
-        where: {
-          ngay: {
-            [db.Sequelize.Op.between]: [startDate, endDate]
-          }
+  try {
+    const data = await db.LopHocPhan.findAll({
+      where: { giangvien_id },
+      // ✅ THÊM ten_lophocphan
+      attributes: [
+        'lophocphan_id', 
+        'ten_lophocphan', 
+        'phong', 
+        'gio_batdau', 
+        'gio_ketthuc',
+        'thu'
+      ],
+      include: [
+        { 
+          model: db.MonHoc, 
+          attributes: ["ten_mon", "ma_mon"] 
         },
-        required: false
-      }
-    ],
-    order: [["gio_batdau", "ASC"]]
-  });
-  return data
+        { 
+          model: db.HocKy, 
+          attributes: ["ten_hocky"] 
+        },
+        { 
+          model: db.LopHanhChinh, 
+          attributes: ["ten_lop"], 
+          as: 'DanhSachLopHanhChinh', // ✅ SỬA ALIAS
+          through: { attributes: [] }
+        },
+        {
+          model: db.BuoiHoc,
+          as: "DanhSachBuoiHoc",
+          where: {
+            ngay: {
+              [Op.between]: [startDate, endDate] // ✅ Dùng Op.between
+            }
+          },
+          attributes: ['buoi_id', 'ngay', 'batdau', 'ketthuc', 'trangthai'],
+          required: true // ✅ Chỉ lấy lớp có lịch trong tuần
+        }
+      ],
+      order: [
+        ['ngay_tao', 'ASC'], // Hoặc order theo ngày của buổi học nếu cần xử lý thêm
+        ["gio_batdau", "ASC"]
+      ]
+    });
+    return data;
+  } catch (error) {
+    console.error("Lỗi getLichTuanNay:", error);
+    throw error;
+  }
 };
-
-
-
-
 
 module.exports = {
   getLichGiangDay,
   getLichTheoNgay,
   getLichTuanNay
 };
+
+
+

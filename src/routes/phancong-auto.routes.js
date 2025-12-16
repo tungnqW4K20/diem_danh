@@ -23,6 +23,9 @@ router.put('/:lophocphan_id/buoi-hoc/bulk', phanCongAutoController.capNhatHangLo
 
 router.post('/create/lop-hoc-lai', phanCongAutoController.taoLopHocLai);
 
+// router.post('/import', upload.single('file'), classController.importClasses);
+
+
 module.exports = router;
 
 

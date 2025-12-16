@@ -148,9 +148,44 @@ const refreshToken = async (req, res, next) => {
     return res.status(401).json({ success: false, message: 'Refresh token failed', error: error.message })
   }
 }
+
+
+const createAdmin = async (req, res) => {
+  try {
+    const { username, password, secretKey } = req.body;
+
+    // Gọi service
+    const result = await authService.registerAdmin({ username, password, secretKey });
+
+    return res.status(201).json({
+      success: true,
+      message: "Tạo tài khoản Admin thành công!",
+      data: result
+    });
+
+  } catch (error) {
+    console.error("Create Admin Error:", error.message);
+    
+    // Xử lý các lỗi cụ thể
+    if (error.message.includes("Mã bí mật")) {
+        return res.status(403).json({ success: false, message: error.message });
+    }
+    if (error.message.includes("tồn tại")) {
+        return res.status(409).json({ success: false, message: error.message });
+    }
+
+    return res.status(500).json({ 
+        success: false, 
+        message: "Lỗi server: " + error.message 
+    });
+  }
+};
+
+
 module.exports = {
     register,
     login,
     loginAdmin,
-    refreshToken
+    refreshToken,
+    createAdmin
 };

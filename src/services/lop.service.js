@@ -97,12 +97,13 @@ const getAllLop = async () => {
         'lop_hanhchinh_id',
         'ten_lop',
         'nien_khoa',
-        'chuong_trinh', // Vẫn giữ chương trình (Đại học/CĐ)
+        'chuong_trinh',
         'khoa_id',
         'giangvien_id',
-        'chuyennganh_id', // <-- Đảm bảo lấy ID này
+        'chuyennganh_id',
+        'coso_id', // 🟢 MỚI THÊM: Lấy ID cơ sở
 
-        // SĨ SỐ SINH VIÊN
+        // SĨ SỐ SINH VIÊN (Logic cũ giữ nguyên)
         [
           db.Sequelize.literal(`(
             SELECT COUNT(*) 
@@ -114,28 +115,34 @@ const getAllLop = async () => {
         ]
       ],
       include: [
-        // Thông tin Khoa
+        // 1. Thông tin Khoa
         {
           model: db.Khoa,
           as: 'Khoa',
           attributes: ['khoa_id', 'ten_khoa', 'ma_khoa']
         },
-        // Thông tin Giảng viên chủ nhiệm
+        // 2. Thông tin Giảng viên chủ nhiệm
         {
           model: db.GiangVien,
           as: 'GVCN',
           attributes: ['giangvien_id', 'ho', 'ten', 'email', 'sdt']
         },
-        // 🟢 MỚI THÊM: Thông tin Chuyên ngành
+        // 3. Thông tin Chuyên ngành
         {
           model: db.ChuyenNganh,
           as: 'ChuyenNganh',
           attributes: ['ten_chuyennganh', 'ma_chuyennganh']
+        },
+        // 🟢 4. MỚI THÊM: Thông tin Cơ Sở
+        {
+          model: db.CoSo,
+          as: 'CoSo', // Phải khớp với alias trong models/LopHanhChinh.js (belongsTo CoSo)
+          attributes: ['coso_id', 'ten_coso', 'dia_chi']
         }
       ]
     });
 
-    // 2️⃣ Xử lý dữ liệu trước khi trả về (Optional: flatten data nếu muốn)
+    // 2️⃣ Xử lý dữ liệu trước khi trả về (Logic cũ giữ nguyên)
     const lopListWithHoTen = lopList.map(lop => {
       const lopJson = lop.toJSON();
       if (lopJson.GVCN) {

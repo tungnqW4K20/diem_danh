@@ -791,6 +791,12 @@ const capNhatHangLoatBuoiHoc = async (req, res) => {
  * }
  */
 
+
+
+/**
+ * Tạo Lớp Học Phần & Tự động sinh buổi học (Có điền sẵn giờ)
+ * POST /api/phan-cong-auto/create
+ */
 const taoLopHocPhanVaBuoiHoc = async (req, res) => {
   const transaction = await db.sequelize.transaction();
 
@@ -800,82 +806,69 @@ const taoLopHocPhanVaBuoiHoc = async (req, res) => {
       hocky_id,
       monhoc_id,
       lop_hanhchinh_ids,
-      thu,
-      gio_batdau,
-      gio_ketthuc,
+      thu,              // 'Mon', 'Tue', ...
+      gio_batdau,       // VD: "07:00:00"
+      gio_ketthuc,      // VD: "11:30:00"
       phong,
-      ngay_batdau,
+      ngay_batdau,      // VD: "2025-08-15"
       so_tuan,
     } = req.body;
 
-    // ================= VALIDATION =================
-
+    // 1. Validate dữ liệu
     if (!giangvien_id || !hocky_id || !monhoc_id || !lop_hanhchinh_ids || lop_hanhchinh_ids.length === 0 || !thu || !ngay_batdau || !so_tuan) {
       return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
 
-    // 1. Lấy môn học
+    // 2. Lấy thông tin Môn học & Lớp hành chính để ghép tên
     const monHoc = await db.MonHoc.findByPk(monhoc_id);
     if (!monHoc) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: "Không tìm thấy môn học" });
     }
 
-    // 2. Lấy danh sách lớp hành chính
-    const dsLHC = await db.LopHanhChinh.findAll({
-      where: { lop_hanhchinh_id: lop_hanhchinh_ids },
-    });
-
+    const dsLHC = await db.LopHanhChinh.findAll({ where: { lop_hanhchinh_id: lop_hanhchinh_ids } });
     if (dsLHC.length !== lop_hanhchinh_ids.length) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: "Có lớp hành chính không tồn tại" });
     }
 
-    // ================= SINH TEN LỚP HỌC PHẦN =================
-
+    // Tạo tên lớp học phần: VD: "CTDL_CNTTK15A_CNTTK15B"
     const ten_lop_ghep = dsLHC.map((l) => l.ten_lop).join("_");
     const ten_lophocphan = `${monHoc.ma_mon}_${ten_lop_ghep}`;
-
-    // ================= TẠO LỚP HỌC PHẦN =================
-
     const lophocphan_id = uuidv4();
 
-    const lop = await db.LopHocPhan.create(
-      {
-        lophocphan_id,
-        monhoc_id,
-        giangvien_id,
-        hocky_id,
-        ten_lophocphan,
-        thu,
-        gio_batdau,
-        gio_ketthuc,
-        phong,
-      },
-      { transaction }
-    );
+    // 3. Tạo record trong bảng LopHocPhan
+    await db.LopHocPhan.create({
+      lophocphan_id,
+      monhoc_id,
+      giangvien_id,
+      hocky_id,
+      ten_lophocphan,
+      thu,
+      gio_batdau, // Giờ quy định
+      gio_ketthuc,
+      phong,
+      ngay_tao: new Date()
+    }, { transaction });
 
-    // ================= GÁN LỚP HÀNH CHÍNH CHO LHP =================
-
+    // 4. Gán danh sách lớp hành chính
     const lhp_lhc_records = lop_hanhchinh_ids.map((id) => ({
       lophocphan_id,
       lop_hanhchinh_id: id,
     }));
-
     await db.LHP_LHC.bulkCreate(lhp_lhc_records, { transaction });
 
-    // ================= TỰ ĐỘNG THÊM SINH VIÊN =================
-
-    // Lấy toàn bộ sinh viên thuộc các lớp hành chính
+    // 5. Auto thêm sinh viên vào lớp
     const dsSinhVien = await db.SinhVien.findAll({
       where: { lop_hanhchinh_id: lop_hanhchinh_ids },
       attributes: ["sinhvien_id"],
     });
 
     const dkList = dsSinhVien.map((sv) => ({
-      dkh_id: uuidv4(),
+      dangky_id: uuidv4(),
       sinhvien_id: sv.sinhvien_id,
       lophocphan_id,
+      trangthai: 'active'
     }));
 
     await db.DangKyHoc.bulkCreate(dkList, {
@@ -883,18 +876,22 @@ const taoLopHocPhanVaBuoiHoc = async (req, res) => {
       transaction,
     });
 
-    // ================= TẠO BUỔI HỌC =================
-
-    const ngayBatDau = dayjs(ngay_batdau);
+    // ==========================================================
+    // 6. TẠO BUỔI HỌC (ĐIỀN LUÔN GIỜ BẮT ĐẦU/KẾT THÚC CỤ THỂ)
+    // ==========================================================
+    
+    // Map thứ sang số (Sunday là 0)
     const daysOfWeek = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
     const targetDay = daysOfWeek[thu];
 
     if (targetDay === undefined) {
       await transaction.rollback();
-      return res.status(400).json({ success: false, message: "Thứ không hợp lệ" });
+      return res.status(400).json({ success: false, message: "Thứ không hợp lệ (Dùng: Mon, Tue, Wed, Thu, Fri, Sat, Sun)" });
     }
 
-    let currentDate = ngayBatDau;
+    let currentDate = dayjs(ngay_batdau);
+    
+    // Tìm ngày đầu tiên khớp với thứ đã chọn
     while (currentDate.day() !== targetDay) {
       currentDate = currentDate.add(1, "day");
     }
@@ -902,42 +899,50 @@ const taoLopHocPhanVaBuoiHoc = async (req, res) => {
     const buoiList = [];
 
     for (let i = 0; i < so_tuan; i++) {
-      const ngayHoc = currentDate.format("YYYY-MM-DD");
+      const ngayHocString = currentDate.format("YYYY-MM-DD");
+
+      // 🔥 QUAN TRỌNG: Ghép Ngày + Giờ để ra DateTime cụ thể
+      // Ví dụ: "2025-12-16" + " " + "07:00:00" = "2025-12-16 07:00:00"
+      const thoiGianBatDau = `${ngayHocString} ${gio_batdau}`; 
+      const thoiGianKetThuc = `${ngayHocString} ${gio_ketthuc}`;
 
       buoiList.push({
         buoi_id: uuidv4(),
         lophocphan_id,
-        ngay: ngayHoc,
-        gio_batdau,
-        gio_ketthuc,
+        ngay: ngayHocString,
+        
+        // Lưu luôn vào DB để Frontend hiển thị dễ dàng, không bị NULL
+        batdau: thoiGianBatDau, 
+        ketthuc: thoiGianKetThuc,
+        
+        trangthai: 'scheduled',
+        ngay_tao: new Date()
       });
 
+      // Tăng thêm 1 tuần
       currentDate = currentDate.add(7, "day");
     }
 
     await db.BuoiHoc.bulkCreate(buoiList, { transaction });
 
-    // ================= DONE =================
-
     await transaction.commit();
 
     return res.status(201).json({
       success: true,
-      message: `Tạo LHP thành công: ${ten_lophocphan}`,
+      message: `Đã tạo lớp ${ten_lophocphan} và ${so_tuan} buổi học (đã gán giờ cụ thể).`,
       data: {
         lophocphan_id,
         ten_lophocphan,
-        so_lop_hanhchinh: lop_hanhchinh_ids.length,
-        so_sinhvien: dsSinhVien.length,
-        so_buoi_hoc: so_tuan,
+        so_buoi_hoc: so_tuan
       },
     });
+
   } catch (error) {
     await transaction.rollback();
+    console.error("Lỗi tạo phân công:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // module.exports = { taoLopHocPhan };
 
 
