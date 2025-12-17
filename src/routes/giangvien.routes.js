@@ -3,6 +3,7 @@
 const express = require('express');
 const giangVienController = require('../controllers/giangvien.controller');
 const { authenticateToken, authorizeRole } = require('../middlewares/auth.middleware');
+const upload = require('../middlewares/upload.middleware');
 
 const router = express.Router();
 
@@ -25,4 +26,7 @@ router.delete('/:id',authenticateToken, authorizeRole('admin'), giangVienControl
 
 router.get('/profile/:id', giangVienController.getProfile);
 
+router.post('/import', upload.single('file'), giangVienController.importGiangVienExcel);
+
 module.exports = router;
+

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const monHocController = require('../controllers/monhoc.controller');
 const { authenticateToken, authorizeRole } = require('../middlewares/auth.middleware');
+const upload = require('../middlewares/upload.middleware');
 
 // GET: Lấy danh sách (có thể ?search=...)
 router.get('/', monHocController.handleGetAll);
@@ -17,5 +18,10 @@ router.put('/:id',authenticateToken, authorizeRole('admin'), monHocController.ha
 
 // DELETE: Xóa môn học (Soft delete)
 router.delete('/:id',authenticateToken, authorizeRole('admin'), monHocController.handleDelete);
+
+router.post('/import', upload.single('file'), monHocController.importMonHocExcel);
+
+module.exports = router;
+
 
 module.exports = router;

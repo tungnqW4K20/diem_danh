@@ -26,7 +26,7 @@ const getLichGiangDay = async (giangvien_id, hocky_id) => {
         },
         {
           model: db.HocKy,
-          attributes: ['ten_hocky']
+          attributes: ['ten_hocky', 'ngay_batdau', 'ngay_ketthuc']
         },
         {
           model: db.LopHanhChinh,
@@ -81,7 +81,7 @@ const getLichTheoNgay = async (giangvien_id, today, tomorrow) => {
         },
         { 
           model: db.HocKy, 
-          attributes: ["ten_hocky"] 
+          attributes: ["ten_hocky", ] 
         },
         { 
           model: db.LopHanhChinh, 
